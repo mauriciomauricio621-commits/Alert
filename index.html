@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Control Eléctrico & Alertas Persistentes - ElectroMant</title>
+  <title>ElectroMant - Control Eléctrico & Alertas Persistentes</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -108,7 +108,7 @@
     </div>
   </header>
 
-  <!-- MÉTRICAS SUPERIORES -->
+  <!-- METRICAS DE CABECERA -->
   <section class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2.5">
     <div class="max-w-5xl mx-auto grid grid-cols-4 gap-2 text-center text-xs">
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
@@ -268,13 +268,13 @@
             </div>
           </div>
 
-          <!-- Captura de Foto sin atributo capture (permite Galería o Cámara) -->
+          <!-- Captura de Foto con Selección de Galería o Cámara (sin capture) -->
           <div>
             <label class="block text-xs font-semibold text-slate-300 mb-1">Evidencia Fotográfica (Galería o Cámara)</label>
             <div class="flex items-center gap-3">
               <label class="flex-1 flex items-center justify-center gap-2 bg-slate-950 border border-dashed border-slate-700 hover:border-sky-500 rounded-xl px-3 py-2.5 cursor-pointer text-slate-400 hover:text-sky-400 text-xs transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h0.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span id="labelFotoRonda">Seleccionar o Tomar Foto</span>
+                <span id="labelFotoRonda">Seleccionar Foto Guardada o Tomar Nueva</span>
                 <input type="file" id="inpFotoRonda" accept="image/*" class="hidden" onchange="procesarFotoRonda(this)">
               </label>
 
@@ -309,22 +309,41 @@
     <!-- PESTAÑA 3: EXPORTAR & REPORTE -->
     <div id="tabReportes" class="hidden space-y-6">
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        
-        <!-- CSV Excel -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="w-10 h-10 rounded-xl bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400 font-bold mb-3">
-              📊
-            </div>
-            <h3 class="font-bold text-white text-base">Exportar CSV (Excel)</h3>
-            <p class="text-xs text-slate-400 mt-1">Genera un archivo CSV con codificación UTF-8 BOM para apertura directa en Microsoft Excel con tildes y formato de datos.</p>
+      <!-- SOLUCIÓN PRO PARA APK: ABRIR EN CHROME / NAVEGADOR -->
+      <div class="bg-gradient-to-r from-sky-950/90 to-slate-900 border border-sky-800/80 rounded-2xl p-5 space-y-3 shadow-xl">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-sky-600 flex items-center justify-center text-white text-xl font-bold shadow">
+            🌐
           </div>
-          <button onclick="exportarCSV()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
-            Descargar CSV para Excel
-          </button>
+          <div>
+            <h3 class="font-extrabold text-white text-base">Acceso Directo Navegador / Chrome</h3>
+            <p class="text-xs text-slate-300 mt-0.5">Para guardar reportes PDF o descargar archivos sin el aviso <strong class="text-amber-400 font-mono text-[11px]">Permission not granted</strong> de AppGeyser.</p>
+          </div>
         </div>
 
+        <div class="space-y-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+          <label class="block text-xs font-semibold text-slate-400">URL del Proyecto (GitHub Pages / Web):</label>
+          <div class="flex gap-2">
+            <input type="url" id="inpGitHubUrl" placeholder="https://tu-usuario.github.io/tu-repo/" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-sky-300 font-mono focus:border-sky-500">
+            <button onclick="guardarUrlProyecto()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl transition">
+              Guardar URL
+            </button>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button onclick="abrirEnNavegadorChrome()" class="flex-1 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-2">
+            <span>🚀 Abrir App en Chrome</span>
+          </button>
+          <button onclick="copiarEnlaceProyecto()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs rounded-xl shadow flex items-center justify-center gap-2">
+            <span>📋 Copiar Enlace Directo</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- BOTONES DE EXPORTACIÓN Y REPORTE -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        
         <!-- Reporte Imprimible / PDF -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between shadow-lg">
           <div>
@@ -336,6 +355,20 @@
           </div>
           <button onclick="generarReporteImprimible()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
             Vista Previa de Reporte Formal
+          </button>
+        </div>
+
+        <!-- CSV Excel -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between shadow-lg">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400 font-bold mb-3">
+              📊
+            </div>
+            <h3 class="font-bold text-white text-base">Exportar CSV (Excel)</h3>
+            <p class="text-xs text-slate-400 mt-1">Genera un archivo CSV con codificación UTF-8 BOM para apertura directa en Microsoft Excel con tildes y formato de datos.</p>
+          </div>
+          <button onclick="exportarCSV()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
+            Descargar CSV para Excel
           </button>
         </div>
 
@@ -386,7 +419,7 @@
           <h4 class="font-bold text-sm text-red-300">🗑️ Limpiar Historial del Día / Reiniciar</h4>
           <p class="text-xs text-slate-400">Borra permanentemente todas las lecturas y alertas registradas en el turno actual.</p>
         </div>
-        <button onclick="limpiarTodoHistorial()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow transition">
+        <button onclick="solicitarLimpiezaHistorial()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow transition">
           Reiniciar Día (Borrar Todo)
         </button>
       </div>
@@ -544,6 +577,25 @@
     </div>
   </div>
 
+  <!-- MODAL: CONFIRMACIÓN PERSONALIZADA -->
+  <div id="modalConfirmacion" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-amber-950 border border-amber-800 flex items-center justify-center text-amber-400 text-lg">
+          ⚠️
+        </div>
+        <div>
+          <h3 id="confTitulo" class="font-bold text-white text-sm">Confirmar Acción</h3>
+          <p id="confMensaje" class="text-xs text-slate-400 mt-0.5">¿Estás seguro de continuar?</p>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button id="btnConfCancelar" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl">Cancelar</button>
+        <button id="btnConfAceptar" class="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: VISOR DE FOTO EXPANDIDA -->
   <div id="modalVisorFoto" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center p-4" onclick="closeModal('modalVisorFoto')">
     <div class="relative max-w-2xl w-full text-center">
@@ -552,7 +604,7 @@
     </div>
   </div>
 
-  <!-- PORTAL DE REPORTE FORMAL PARA IMPRESIÓN / PDF O DESCARGA HTML -->
+  <!-- REPORTE FORMAL PARA IMPRESIÓN / PDF -->
   <div id="printPortal" class="fixed inset-0 z-50 bg-slate-950 overflow-y-auto hidden">
     <div class="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
       
@@ -560,9 +612,10 @@
         <button onclick="closePrintPortal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-700">
           &larr; Volver a la App
         </button>
+
         <div class="flex flex-wrap gap-2">
-          <button onclick="descargarReporteHTML()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1">
-            📥 Descargar Reporte (HTML/PDF)
+          <button onclick="abrirEnNavegadorChrome()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5">
+            🌐 Abrir en Chrome (Para Guardar PDF)
           </button>
           <button onclick="ejecutarImpresion()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
@@ -571,7 +624,9 @@
         </div>
       </div>
 
-      <div id="printMsg" class="no-print text-xs text-amber-300 bg-amber-950/40 border border-amber-800/60 rounded-xl px-3 py-2 hidden"></div>
+      <div id="printStatusBanner" class="no-print text-xs text-slate-300 bg-slate-900 border border-slate-800 rounded-xl p-3 hidden">
+        <span id="printStatusText">--</span>
+      </div>
 
       <div id="printableArea" class="bg-white text-slate-900 p-8 rounded-2xl shadow-xl space-y-6">
         
@@ -648,9 +703,11 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT LÓGICA DE APLICACIÓN -->
+  <!-- JAVASCRIPT APLICACIÓN -->
   <script>
-    const STORAGE_KEY = "ELECTROMANT_DATA_PRO_V4";
+    const STORAGE_KEY = "ELECTROMANT_DATA_PRO_V5";
+    const URL_KEY = "ELECTROMANT_PROJECT_URL";
+
     let state = {
       logs: [],
       alerts: []
@@ -660,9 +717,11 @@
     let audioCtx = null;
     let alarmInterval = null;
     let tempFotoBase64 = null;
+    let confirmCallback = null;
 
     window.addEventListener("DOMContentLoaded", () => {
       cargarLocalStorage();
+      initUrlProyecto();
       renderAll();
       syncAlarmAudioLoop();
     });
@@ -684,6 +743,58 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       renderAll();
       syncAlarmAudioLoop();
+    }
+
+    // --- CONFIGURACIÓN DE URL DE PROYECTO (GITHUB PAGES / CHROME LAUNCHER) ---
+    function initUrlProyecto() {
+      const savedUrl = localStorage.getItem(URL_KEY) || window.location.href;
+      document.getElementById("inpGitHubUrl").value = savedUrl;
+    }
+
+    function guardarUrlProyecto() {
+      const inputVal = document.getElementById("inpGitHubUrl").value.trim();
+      if (inputVal) {
+        localStorage.setItem(URL_KEY, inputVal);
+        mostrarToastStatus("URL de proyecto guardada correctamente.");
+      }
+    }
+
+    function obtenerUrlProyectoActual() {
+      return localStorage.getItem(URL_KEY) || document.getElementById("inpGitHubUrl").value.trim() || window.location.href;
+    }
+
+    function abrirEnNavegadorChrome() {
+      const targetUrl = obtenerUrlProyectoActual();
+      try {
+        window.open(targetUrl, '_system');
+      } catch(_) {
+        window.open(targetUrl, '_blank');
+      }
+    }
+
+    function copiarEnlaceProyecto() {
+      const targetUrl = obtenerUrlProyectoActual();
+      const tempInp = document.createElement("input");
+      tempInp.value = targetUrl;
+      document.body.appendChild(tempInp);
+      tempInp.select();
+      try {
+        document.execCommand('copy');
+        mostrarToastStatus("📋 Enlace copiado al portapapeles: " + targetUrl);
+      } catch (err) {
+        mostrarToastStatus("Enlace: " + targetUrl);
+      }
+      document.body.removeChild(tempInp);
+    }
+
+    function mostrarToastStatus(msg) {
+      const banner = document.getElementById("printStatusBanner");
+      const text = document.getElementById("printStatusText");
+      if (banner && text) {
+        text.textContent = msg;
+        banner.classList.remove("hidden");
+        setTimeout(() => { banner.classList.add("hidden"); }, 5000);
+      }
     }
 
     // --- SINTETIZADOR WEB AUDIO API ---
@@ -819,7 +930,7 @@
       tempFotoBase64 = null;
       document.getElementById("inpFotoRonda").value = "";
       document.getElementById("containerPreviewFoto").classList.add("hidden");
-      document.getElementById("labelFotoRonda").textContent = "Seleccionar o Tomar Foto";
+      document.getElementById("labelFotoRonda").textContent = "Seleccionar Foto Guardada o Tomar Nueva";
     }
 
     // --- GUARDAR RONDA ---
@@ -966,12 +1077,32 @@
       }
     }
 
-    // --- CORRECCIÓN & ELIMINACIÓN DE REGISTROS ---
+    // --- CORRECCIÓN & ELIMINACIÓN DE REGISTROS CON MODAL PRO ---
+    function pedirConfirmacionModal(titulo, mensaje, onConfirm) {
+      document.getElementById("confTitulo").textContent = titulo;
+      document.getElementById("confMensaje").textContent = mensaje;
+      confirmCallback = onConfirm;
+      openModal("modalConfirmacion");
+    }
+
+    document.getElementById("btnConfCancelar").addEventListener("click", () => {
+      closeModal("modalConfirmacion");
+      confirmCallback = null;
+    });
+
+    document.getElementById("btnConfAceptar").addEventListener("click", () => {
+      if (typeof confirmCallback === "function") {
+        confirmCallback();
+      }
+      closeModal("modalConfirmacion");
+      confirmCallback = null;
+    });
+
     function eliminarLog(id) {
-      if (confirm("¿Deseas eliminar esta lectura de la bitácora?")) {
+      pedirConfirmacionModal("Eliminar Lectura", "¿Deseas eliminar esta lectura de la bitácora?", () => {
         state.logs = state.logs.filter(l => l.id !== id);
         guardarLocalStorage();
-      }
+      });
     }
 
     function abrirModalEditarLog(id) {
@@ -1010,20 +1141,18 @@
     }
 
     function eliminarAlerta(id) {
-      if (confirm("¿Deseas eliminar este registro de alerta del historial?")) {
+      pedirConfirmacionModal("Eliminar Alerta", "¿Deseas eliminar este registro de alerta del historial?", () => {
         state.alerts = state.alerts.filter(a => a.id !== id);
         guardarLocalStorage();
-      }
+      });
     }
 
-    function limpiarTodoHistorial() {
-      if (confirm("⚠️ ¿Estás seguro de que deseas borrar TODA la bitácora y alertas del turno?")) {
-        if (confirm("🚨 Confirmación final: Se eliminarán todas las lecturas y alertas registradas.")) {
-          state.logs = [];
-          state.alerts = [];
-          guardarLocalStorage();
-        }
-      }
+    function solicitarLimpiezaHistorial() {
+      pedirConfirmacionModal("Reiniciar Historial del Día", "⚠️ Se borrarán permanentemente todas las lecturas y alertas registradas en el turno actual.", () => {
+        state.logs = [];
+        state.alerts = [];
+        guardarLocalStorage();
+      });
     }
 
     // --- RENDERIZADO GENERAL ---
@@ -1202,7 +1331,23 @@
       }
     }
 
-    // --- EXPORTACIÓN E IMPORTACIÓN ---
+    // --- EXPORTACIÓN E IMPORTACIÓN CON MANEJO DE ERRORES APP GEYSER ---
+    function triggerDownload(filename, blobData) {
+      try {
+        const url = URL.createObjectURL(blobData);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 3000);
+        mostrarToastStatus(`Descarga iniciada: ${filename}`);
+      } catch (err) {
+        mostrarToastStatus("⚠️ El APK bloquea descargas directas. Usa el botón 'Abrir en Chrome' para descargar sin restricciones.");
+      }
+    }
+
     function exportarCSV() {
       if (state.logs.length === 0) return;
 
@@ -1221,26 +1366,12 @@
 
       const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Ronda_Electrica_${new Date().toISOString().slice(0,10)}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      triggerDownload(`Ronda_Electrica_${new Date().toISOString().slice(0,10)}.csv`, blob);
     }
 
     function exportarJSON() {
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Respaldo_ElectroMant_${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      triggerDownload(`Respaldo_ElectroMant_${new Date().toISOString().slice(0,10)}.json`, blob);
     }
 
     function importarArchivo(input) {
@@ -1256,6 +1387,7 @@
             if (Array.isArray(parsed.logs)) {
               state = parsed;
               guardarLocalStorage();
+              mostrarToastStatus("Respaldo JSON restaurado correctamente.");
             }
           } else if (file.name.endsWith(".csv")) {
             const lines = text.split(/\r?\n/).filter(Boolean).slice(1);
@@ -1276,9 +1408,10 @@
             });
             state.logs = [...importedLogs, ...state.logs];
             guardarLocalStorage();
+            mostrarToastStatus(`Importadas ${importedLogs.length} lecturas desde CSV.`);
           }
         } catch(err) {
-          console.error(err);
+          mostrarToastStatus("No se pudo procesar el archivo seleccionado.");
         }
         input.value = "";
       };
@@ -1288,8 +1421,6 @@
     // --- REPORTE IMPRIMIBLE ---
     function generarReporteImprimible() {
       document.getElementById("repFechaGen").textContent = new Date().toLocaleString();
-      const msg = document.getElementById("printMsg");
-      msg.classList.add("hidden");
       
       const tbodyRonda = document.getElementById("repTablaRondaBody");
       if (state.logs.length === 0) {
@@ -1354,33 +1485,12 @@
       portal.classList.remove("block");
     }
 
-    function descargarReporteHTML() {
-      const area = document.getElementById("printableArea");
-      if (!area) return;
-      const docHtml = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte ElectroMant</title><script src="https://cdn.tailwindcss.com"></` + `script><style>body{background:#fff;color:#0f172a;font-family:Inter,sans-serif;padding:16px;}</style></head><body>${area.outerHTML}</body></html>`;
-      const blob = new Blob([docHtml], { type: "text/html;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Reporte_ElectroMant_${new Date().toISOString().slice(0,10)}.html`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-      
-      const msg = document.getElementById("printMsg");
-      msg.textContent = "Reporte descargado. Puedes abrir este archivo descargado en cualquier navegador para imprimirlo o guardarlo en PDF.";
-      msg.classList.remove("hidden");
-    }
-
     function ejecutarImpresion() {
-      const msg = document.getElementById("printMsg");
       try {
         window.print();
-        msg.textContent = "Si estás en el APK y tu celular no abrió el menú de impresión, usa la opción 'Descargar Reporte (HTML/PDF)'.";
-        msg.classList.remove("hidden");
+        mostrarToastStatus("Si estás dentro del APK y no abre la ventana de impresión, usa el botón 'Abrir en Chrome' arriba.");
       } catch (e) {
-        descargarReporteHTML();
+        mostrarToastStatus("Usa el botón 'Abrir en Chrome' para guardar como PDF.");
       }
     }
 
