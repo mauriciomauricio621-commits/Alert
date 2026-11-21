@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Control Eléctrico & Alertas Persistentes</title>
+  <title>Control Eléctrico & Alertas Persistentes - ElectroMant</title>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -23,10 +24,12 @@
       }
     }
   </script>
+
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
   <style>
     body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
     
@@ -39,9 +42,28 @@
     }
 
     @media print {
-      body * { visibility: hidden; }
-      #printableArea, #printableArea * { visibility: visible; }
-      #printableArea { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; padding: 20px; }
+      body > :not(#printPortal) { display: none !important; }
+      #printPortal {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        background: #fff !important;
+        color: #000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      #printableArea, #printableArea * {
+        visibility: visible !important;
+        color: #000 !important;
+        background: #fff !important;
+      }
+      #printableArea {
+        position: static !important;
+        width: 100% !important;
+        padding: 12px !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
       .no-print { display: none !important; }
     }
 
@@ -86,7 +108,7 @@
     </div>
   </header>
 
-  <!-- METRICAS DE CABECERA -->
+  <!-- MÉTRICAS SUPERIORES -->
   <section class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2.5">
     <div class="max-w-5xl mx-auto grid grid-cols-4 gap-2 text-center text-xs">
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
@@ -246,14 +268,14 @@
             </div>
           </div>
 
-          <!-- Captura de Foto con Canvas Compressor -->
+          <!-- Captura de Foto sin atributo capture (permite Galería o Cámara) -->
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Evidencia Fotográfica (Compresión Automática)</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Evidencia Fotográfica (Galería o Cámara)</label>
             <div class="flex items-center gap-3">
               <label class="flex-1 flex items-center justify-center gap-2 bg-slate-950 border border-dashed border-slate-700 hover:border-sky-500 rounded-xl px-3 py-2.5 cursor-pointer text-slate-400 hover:text-sky-400 text-xs transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h0.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span id="labelFotoRonda">Tomar o Cargar Foto</span>
-                <input type="file" id="inpFotoRonda" accept="image/*" capture="environment" class="hidden" onchange="procesarFotoRonda(this)">
+                <span id="labelFotoRonda">Seleccionar o Tomar Foto</span>
+                <input type="file" id="inpFotoRonda" accept="image/*" class="hidden" onchange="procesarFotoRonda(this)">
               </label>
 
               <div id="containerPreviewFoto" class="hidden relative">
@@ -338,7 +360,7 @@
               📥
             </div>
             <h3 class="font-bold text-white text-base">Importar Archivo Local</h3>
-            <p class="text-xs text-slate-400 mt-1">Carga un archivo de respaldo JSON o una lista CSV previa para synchronizar bitácoras en la aplicación.</p>
+            <p class="text-xs text-slate-400 mt-1">Carga un archivo de respaldo JSON o una lista CSV previa para sincronizar bitácoras en la aplicación.</p>
           </div>
           <label class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2 cursor-pointer">
             <span>Seleccionar Archivo</span>
@@ -385,7 +407,7 @@
 
       <form onsubmit="dispararAlertaManualSubmit(event)" class="space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Equipo / Maquina Afectada *</label>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Equipo / Máquina Afectada *</label>
           <input type="text" id="inpAlertaEquipo" required placeholder="Ej. Bomba de Agua Potable P-01" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-red-500">
         </div>
         <div>
@@ -530,19 +552,26 @@
     </div>
   </div>
 
-  <!-- REPORTE FORMAL PARA IMPRESIÓN / PDF -->
-  <div id="modalReporteImprimible" class="fixed inset-0 z-50 bg-slate-950 overflow-y-auto hidden">
+  <!-- PORTAL DE REPORTE FORMAL PARA IMPRESIÓN / PDF O DESCARGA HTML -->
+  <div id="printPortal" class="fixed inset-0 z-50 bg-slate-950 overflow-y-auto hidden">
     <div class="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
       
-      <div class="no-print flex items-center justify-between border-b border-slate-800 pb-4">
-        <button onclick="closeModal('modalReporteImprimible')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-700">
+      <div class="no-print flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
+        <button onclick="closePrintPortal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-700">
           &larr; Volver a la App
         </button>
-        <button onclick="window.print()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-          Imprimir / Guardar como PDF
-        </button>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="descargarReporteHTML()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1">
+            📥 Descargar Reporte (HTML/PDF)
+          </button>
+          <button onclick="ejecutarImpresion()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            Imprimir / Guardar como PDF
+          </button>
+        </div>
       </div>
+
+      <div id="printMsg" class="no-print text-xs text-amber-300 bg-amber-950/40 border border-amber-800/60 rounded-xl px-3 py-2 hidden"></div>
 
       <div id="printableArea" class="bg-white text-slate-900 p-8 rounded-2xl shadow-xl space-y-6">
         
@@ -619,9 +648,9 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT APLICACIÓN -->
+  <!-- JAVASCRIPT LÓGICA DE APLICACIÓN -->
   <script>
-    const STORAGE_KEY = "ELECTROMANT_DATA_PRO_V3";
+    const STORAGE_KEY = "ELECTROMANT_DATA_PRO_V4";
     let state = {
       logs: [],
       alerts: []
@@ -790,7 +819,7 @@
       tempFotoBase64 = null;
       document.getElementById("inpFotoRonda").value = "";
       document.getElementById("containerPreviewFoto").classList.add("hidden");
-      document.getElementById("labelFotoRonda").textContent = "Tomar o Cargar Foto";
+      document.getElementById("labelFotoRonda").textContent = "Seleccionar o Tomar Foto";
     }
 
     // --- GUARDAR RONDA ---
@@ -1259,6 +1288,8 @@
     // --- REPORTE IMPRIMIBLE ---
     function generarReporteImprimible() {
       document.getElementById("repFechaGen").textContent = new Date().toLocaleString();
+      const msg = document.getElementById("printMsg");
+      msg.classList.add("hidden");
       
       const tbodyRonda = document.getElementById("repTablaRondaBody");
       if (state.logs.length === 0) {
@@ -1308,7 +1339,49 @@
         `).join("");
       }
 
-      openModal("modalReporteImprimible");
+      openPrintPortal();
+    }
+
+    function openPrintPortal() {
+      const portal = document.getElementById("printPortal");
+      portal.classList.remove("hidden");
+      portal.classList.add("block");
+    }
+
+    function closePrintPortal() {
+      const portal = document.getElementById("printPortal");
+      portal.classList.add("hidden");
+      portal.classList.remove("block");
+    }
+
+    function descargarReporteHTML() {
+      const area = document.getElementById("printableArea");
+      if (!area) return;
+      const docHtml = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte ElectroMant</title><script src="https://cdn.tailwindcss.com"></` + `script><style>body{background:#fff;color:#0f172a;font-family:Inter,sans-serif;padding:16px;}</style></head><body>${area.outerHTML}</body></html>`;
+      const blob = new Blob([docHtml], { type: "text/html;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Reporte_ElectroMant_${new Date().toISOString().slice(0,10)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      
+      const msg = document.getElementById("printMsg");
+      msg.textContent = "Reporte descargado. Puedes abrir este archivo descargado en cualquier navegador para imprimirlo o guardarlo en PDF.";
+      msg.classList.remove("hidden");
+    }
+
+    function ejecutarImpresion() {
+      const msg = document.getElementById("printMsg");
+      try {
+        window.print();
+        msg.textContent = "Si estás en el APK y tu celular no abrió el menú de impresión, usa la opción 'Descargar Reporte (HTML/PDF)'.";
+        msg.classList.remove("hidden");
+      } catch (e) {
+        descargarReporteHTML();
+      }
     }
 
     // --- CARGAR DATOS DEMO REALISTAS ---
