@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="es" class="dark h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Control Eléctrico & Alertas Persistentes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    
+    @keyframes alertPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7), inset 0 0 15px rgba(220, 38, 38, 0.4); border-color: #ef4444; }
+      50% { box-shadow: 0 0 0 14px rgba(220, 38, 38, 0), inset 0 0 25px rgba(220, 38, 38, 0.7); border-color: #f87171; }
+    }
+    .pulse-alarm {
+      animation: alertPulse 1.2s infinite ease-in-out;
+    }
+
+    @media print {
+      body * { visibility: hidden; }
+      #printableArea, #printableArea * { visibility: visible; }
+      #printableArea { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; padding: 20px; }
+      .no-print { display: none !important; }
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  </style>
+</head>
+<body class="h-full flex flex-col bg-slate-950 text-slate-100 overflow-x-hidden selection:bg-sky-500 selection:text-white">
+
+  <!-- CABECERA PRINCIPAL -->
+  <header class="sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-3">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-amber-500 flex items-center justify-center shadow-lg shadow-sky-950/50">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-base sm:text-lg tracking-tight leading-none text-white flex items-center gap-2">
+            ElectroMant <span class="text-sky-400 font-semibold text-[10px] uppercase px-1.5 py-0.5 bg-sky-950 border border-sky-800 rounded">Logística Planta</span>
+          </h1>
+          <p class="text-xs text-slate-400 mt-0.5">Control de Ronda Eléctrica & Alertas Persistentes</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnAudioToggle" onclick="toggleAudioMute()" title="Estado Sonoro Alarma" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold border border-slate-700 transition">
+          <span id="audioIcon">🔊</span>
+          <span id="audioText" class="hidden sm:inline">Audio Activo</span>
+        </button>
+
+        <button onclick="openModal('modalAlertaManual')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-md shadow-red-950/50 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <span class="hidden sm:inline">Reportar Falla</span>
+          <span class="sm:hidden">Alerta</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- METRICAS DE CABECERA -->
+  <section class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2.5">
+    <div class="max-w-5xl mx-auto grid grid-cols-4 gap-2 text-center text-xs">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
+        <span class="block text-slate-400 font-medium text-[11px]">Lecturas Turno</span>
+        <span id="statLecturas" class="text-base font-extrabold text-sky-400">0</span>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
+        <span class="block text-slate-400 font-medium text-[11px]">Alertas Activas</span>
+        <span id="statAlertasActivas" class="text-base font-extrabold text-red-400">0</span>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
+        <span class="block text-slate-400 font-medium text-[11px]">En Revisión</span>
+        <span id="statEnRevision" class="text-base font-extrabold text-amber-400">0</span>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
+        <span class="block text-slate-400 font-medium text-[11px]">Resueltas</span>
+        <span id="statResueltas" class="text-base font-extrabold text-emerald-400">0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- NAVEGACIÓN PESTAÑAS -->
+  <nav class="bg-slate-900 border-b border-slate-800 px-4">
+    <div class="max-w-5xl mx-auto flex gap-1">
+      <button onclick="switchTab('tabAlertas')" id="navTabAlertas" class="flex-1 py-3 px-2 text-center font-bold text-xs sm:text-sm border-b-2 border-red-500 text-red-400 transition flex items-center justify-center gap-1.5 relative">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span>Alertas Activas</span>
+        <span id="badgeAlertasNav" class="hidden ml-1 px-1.5 py-0.2 bg-red-600 text-white text-[10px] font-extrabold rounded-full animate-pulse">0</span>
+      </button>
+
+      <button onclick="switchTab('tabRonda')" id="navTabRonda" class="flex-1 py-3 px-2 text-center font-bold text-xs sm:text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        <span>Ronda & Bitácora</span>
+      </button>
+
+      <button onclick="switchTab('tabReportes')" id="navTabReportes" class="flex-1 py-3 px-2 text-center font-bold text-xs sm:text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span>Exportar & Reporte</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- BANNER DE ALERTA PERSISTENTE -->
+  <div id="bannerCriticalAlert" class="hidden bg-red-950/90 border-b-2 border-red-600 text-red-200 px-4 py-2.5 text-xs sm:text-sm pulse-alarm z-30">
+    <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="text-base animate-pulse">🚨</span>
+        <div>
+          <strong class="text-white font-bold">¡ALERTA SIN ATENDER EN PLANTA!</strong>
+          <span id="bannerAlertText" class="block text-red-300 font-medium">Falla detectada en equipo de campo</span>
+        </div>
+      </div>
+      <button onclick="switchTab('tabAlertas')" class="px-3 py-1 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow text-xs">
+        Atender Alerta Ahora &rarr;
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 space-y-6">
+
+    <!-- PESTAÑA 1: ALERTAS ACTIVAS Y RESUELTAS -->
+    <div id="tabAlertas" class="space-y-6">
+      
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+        <div>
+          <h2 class="font-bold text-base text-white flex items-center gap-2">
+            <span>🚨 Panel de Alertas de Planta</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Las alertas <strong class="text-red-400">SIN ATENDER</strong> disparan sirena continua hasta que un técnico tome la atención.</p>
+        </div>
+
+        <button onclick="probarSonidoAlarma()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition">
+          <span>🔔</span> Probar Sonido
+        </button>
+      </div>
+
+      <!-- Alertas Activas -->
+      <div class="space-y-3">
+        <h3 class="font-bold text-xs uppercase tracking-wider text-red-400 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+          Alertas Sin Atender / En Revisión (<span id="countAlertasActivas">0</span>)
+        </h3>
+
+        <div id="containerAlertasActivas" class="space-y-3">
+          <!-- Dinámico -->
+        </div>
+      </div>
+
+      <!-- Historial de Alertas Resueltas -->
+      <div class="space-y-3 pt-4 border-t border-slate-800">
+        <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400">
+          Historial de Alertas Resueltas en el Turno
+        </h3>
+
+        <div id="containerAlertasResueltas" class="space-y-2">
+          <!-- Dinámico -->
+        </div>
+      </div>
+    </div>
+
+    <!-- PESTAÑA 2: RONDA & BITÁCORA -->
+    <div id="tabRonda" class="hidden space-y-6">
+      
+      <!-- Formulario Ronda -->
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-sky-500"></span>
+            <h2 class="font-bold text-base text-white">Nueva Lectura de Inspección</h2>
+          </div>
+          <span class="text-xs text-slate-400">Semáforo Automático</span>
+        </div>
+
+        <form id="formRonda" onsubmit="guardarRonda(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Equipo / Tag *</label>
+              <input type="text" id="inpEquipo" required placeholder="Ej. Motor Compresor L-01 / VFD-02" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Línea / Tablero / Área *</label>
+              <input type="text" id="inpArea" required placeholder="Ej. Subestación 02 - Nave Chancado" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+          </div>
+
+          <!-- Mediciones -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Amperaje Nominal (A) *</label>
+              <input type="number" step="0.1" id="inpAmpNom" required placeholder="Ej. 40.0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Amperaje Medido (A) *</label>
+              <input type="number" step="0.1" id="inpAmpMed" required placeholder="Ej. 42.5" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Temperatura Termográfica (°C) *</label>
+              <input type="number" step="0.5" id="inpTemp" required placeholder="Ej. 68.0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:border-sky-500">
+            </div>
+          </div>
+
+          <!-- Estado visual y Observación -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Inspección Visual *</label>
+              <select id="inpEstadoVisual" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:border-sky-500">
+                <option value="OK">OK - Sin Anomalías Visuales</option>
+                <option value="ANOMALIA">ANOMALÍA - Olor/Ruido/Chispa/Cables</option>
+              </select>
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Observación / Detalle Técnico</label>
+              <input type="text" id="inpObs" placeholder="Ej. Vibración leve en chasis, bornera caliente a la vista" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:border-sky-500">
+            </div>
+          </div>
+
+          <!-- Captura de Foto con Canvas Compressor -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Evidencia Fotográfica (Compresión Automática)</label>
+            <div class="flex items-center gap-3">
+              <label class="flex-1 flex items-center justify-center gap-2 bg-slate-950 border border-dashed border-slate-700 hover:border-sky-500 rounded-xl px-3 py-2.5 cursor-pointer text-slate-400 hover:text-sky-400 text-xs transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h0.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span id="labelFotoRonda">Tomar o Cargar Foto</span>
+                <input type="file" id="inpFotoRonda" accept="image/*" capture="environment" class="hidden" onchange="procesarFotoRonda(this)">
+              </label>
+
+              <div id="containerPreviewFoto" class="hidden relative">
+                <img id="imgPreviewRonda" src="" alt="Vista Previa" class="w-12 h-12 object-cover rounded-xl border border-slate-700">
+                <button type="button" onclick="quitarFotoRonda()" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="w-full py-3 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-sky-950/50 flex items-center justify-center gap-2 transition text-sm">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+            <span>Registrar Lectura en Bitácora</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Historial Bitácora -->
+      <section class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-slate-300">Bitácora de Inspecciones del Turno</h3>
+          <span class="text-xs text-slate-500">Más recientes primero</span>
+        </div>
+
+        <div id="listaBitacora" class="space-y-3">
+          <!-- Dinámico -->
+        </div>
+      </section>
+
+    </div>
+
+    <!-- PESTAÑA 3: EXPORTAR & REPORTE -->
+    <div id="tabReportes" class="hidden space-y-6">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        
+        <!-- CSV Excel -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between shadow-lg">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400 font-bold mb-3">
+              📊
+            </div>
+            <h3 class="font-bold text-white text-base">Exportar CSV (Excel)</h3>
+            <p class="text-xs text-slate-400 mt-1">Genera un archivo CSV con codificación UTF-8 BOM para apertura directa en Microsoft Excel con tildes y formato de datos.</p>
+          </div>
+          <button onclick="exportarCSV()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
+            Descargar CSV para Excel
+          </button>
+        </div>
+
+        <!-- Reporte Imprimible / PDF -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between shadow-lg">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-sky-950 border border-sky-800 flex items-center justify-center text-sky-400 font-bold mb-3">
+              📄
+            </div>
+            <h3 class="font-bold text-white text-base">Generar Reporte PDF / Imprimir</h3>
+            <p class="text-xs text-slate-400 mt-1">Abre el formato oficial de reporte diario con estadísticas, tabla de lecturas, eventos atendidos y evidencias fotográficas.</p>
+          </div>
+          <button onclick="generarReporteImprimible()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
+            Vista Previa de Reporte Formal
+          </button>
+        </div>
+
+        <!-- Respaldo JSON -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between shadow-lg">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-purple-950 border border-purple-800 flex items-center justify-center text-purple-400 font-bold mb-3">
+              💾
+            </div>
+            <h3 class="font-bold text-white text-base">Respaldo Completo (JSON)</h3>
+            <p class="text-xs text-slate-400 mt-1">Descarga una copia íntegra en formato JSON conteniendo todas las rondas, alertas y fotos comprimidas para respaldo de seguridad.</p>
+          </div>
+          <button onclick="exportarJSON()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
+            Descargar Respaldo JSON
+          </button>
+        </div>
+
+        <!-- Importar JSON / CSV -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between shadow-lg">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-amber-950 border border-amber-800 flex items-center justify-center text-amber-400 font-bold mb-3">
+              📥
+            </div>
+            <h3 class="font-bold text-white text-base">Importar Archivo Local</h3>
+            <p class="text-xs text-slate-400 mt-1">Carga un archivo de respaldo JSON o una lista CSV previa para synchronizar bitácoras en la aplicación.</p>
+          </div>
+          <label class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2 cursor-pointer">
+            <span>Seleccionar Archivo</span>
+            <input type="file" id="inpImportFile" accept=".json,.csv" class="hidden" onchange="importarArchivo(this)">
+          </label>
+        </div>
+      </div>
+
+      <!-- Cargar Datos Demo -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+        <div>
+          <h4 class="font-bold text-sm text-white">🧪 Cargar Datos de Ejemplo de Planta</h4>
+          <p class="text-xs text-slate-400">Puebla la aplicación al instante con lecturas normales, observadas, alertas activas y fotos simuladas para probar todas las funciones.</p>
+        </div>
+        <button onclick="cargarDatosDemo()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-800 font-bold text-xs rounded-xl transition shadow">
+          Cargar Datos Demo
+        </button>
+      </div>
+
+      <!-- Limpiar Historial / Reiniciar Día -->
+      <div class="bg-red-950/30 border border-red-900/60 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+        <div>
+          <h4 class="font-bold text-sm text-red-300">🗑️ Limpiar Historial del Día / Reiniciar</h4>
+          <p class="text-xs text-slate-400">Borra permanentemente todas las lecturas y alertas registradas en el turno actual.</p>
+        </div>
+        <button onclick="limpiarTodoHistorial()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow transition">
+          Reiniciar Día (Borrar Todo)
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL: REPORTAR FALLA MANUAL -->
+  <div id="modalAlertaManual" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-white text-base flex items-center gap-2">
+          <span class="text-red-500">🚨</span> Disparar Alerta Manual
+        </h3>
+        <button onclick="closeModal('modalAlertaManual')" class="text-slate-400 hover:text-white font-bold">✕</button>
+      </div>
+
+      <form onsubmit="dispararAlertaManualSubmit(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Equipo / Maquina Afectada *</label>
+          <input type="text" id="inpAlertaEquipo" required placeholder="Ej. Bomba de Agua Potable P-01" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-red-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Línea / Área / Ubicación *</label>
+          <input type="text" id="inpAlertaArea" required placeholder="Ej. Cuarto de Bombas Principal" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-red-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Síntoma o Motivo de Alarma *</label>
+          <textarea id="inpAlertaMotivo" required rows="3" placeholder="Ej. Disparo de protección térmico, fuerte olor a quemado en bornera." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-red-500"></textarea>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeModal('modalAlertaManual')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl">Cancelar</button>
+          <button type="submit" class="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow">Lanzar Alerta Persistente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: TOMAR ATENCIÓN DE ALERTA -->
+  <div id="modalAtenderAlerta" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-white text-base flex items-center gap-2">
+          <span class="text-amber-500">🛠️</span> Registrar Atención de Alerta
+        </h3>
+        <button onclick="closeModal('modalAtenderAlerta')" class="text-slate-400 hover:text-white font-bold">✕</button>
+      </div>
+
+      <input type="hidden" id="inpAtenderAlertId">
+
+      <div class="space-y-3">
+        <p class="text-xs text-slate-300">Al tomar atención, el sonido de la sirena se detendrá para los demás técnicos y la alerta pasará a estado <strong class="text-amber-400">EN REVISIÓN</strong>.</p>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre del Técnico a Cargo *</label>
+          <input type="text" id="inpTecnicoNombre" required placeholder="Ej. Ing. Juan Pérez / Tec. Mantenimiento" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:border-amber-500">
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button type="button" onclick="closeModal('modalAtenderAlerta')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl">Cancelar</button>
+        <button type="button" onclick="confirmarAtencionAlerta()" class="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow">Confirmar "En Atención"</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MARCAR ALERTA RESUELTA -->
+  <div id="modalResolverAlerta" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-white text-base flex items-center gap-2">
+          <span class="text-emerald-500">✅</span> Resolver & Cerrar Alerta
+        </h3>
+        <button onclick="closeModal('modalResolverAlerta')" class="text-slate-400 hover:text-white font-bold">✕</button>
+      </div>
+
+      <input type="hidden" id="inpResolverAlertId">
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Diagnóstico & Acción Realizada *</label>
+          <textarea id="inpSolucionTexto" required rows="3" placeholder="Ej. Se ajustaron bornes de potencia L1/L2, reemplazo de térmico y rearme de protección." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Foto Evidencia de Cierre (Opcional)</label>
+          <input type="file" id="inpFotoCierre" accept="image/*" class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-sky-400 hover:file:bg-slate-700">
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button type="button" onclick="closeModal('modalResolverAlerta')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl">Cancelar</button>
+        <button type="button" onclick="confirmarResolverAlerta()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow">Cerrar Alerta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR LECTURA DE RONDA -->
+  <div id="modalEditarLectura" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-white text-base flex items-center gap-2">
+          <span class="text-sky-400">✏️</span> Editar Lectura de Ronda
+        </h3>
+        <button onclick="closeModal('modalEditarLectura')" class="text-slate-400 hover:text-white font-bold">✕</button>
+      </div>
+
+      <form onsubmit="confirmarEdicionLog(event)" class="space-y-3">
+        <input type="hidden" id="editLogId">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Equipo / Tag *</label>
+            <input type="text" id="editInpEquipo" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Línea / Área *</label>
+            <input type="text" id="editInpArea" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-sky-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Amp. Nom (A)</label>
+            <input type="number" step="0.1" id="editInpAmpNom" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Amp. Med (A)</label>
+            <input type="number" step="0.1" id="editInpAmpMed" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Temp. (°C)</label>
+            <input type="number" step="0.5" id="editInpTemp" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Inspección Visual *</label>
+          <select id="editInpEstadoVisual" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-sky-500">
+            <option value="OK">OK - Sin Anomalías Visuales</option>
+            <option value="ANOMALIA">ANOMALÍA - Olor/Ruido/Chispa/Cables</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Observación</label>
+          <input type="text" id="editInpObs" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-sky-500">
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeModal('modalEditarLectura')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl">Cancelar</button>
+          <button type="submit" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: VISOR DE FOTO EXPANDIDA -->
+  <div id="modalVisorFoto" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center p-4" onclick="closeModal('modalVisorFoto')">
+    <div class="relative max-w-2xl w-full text-center">
+      <img id="imgVisorFull" src="" alt="Evidencia Expandida" class="max-h-[80vh] mx-auto rounded-2xl border border-slate-700 shadow-2xl">
+      <p class="text-xs text-slate-400 mt-2">Haz clic en cualquier lugar para cerrar</p>
+    </div>
+  </div>
+
+  <!-- REPORTE FORMAL PARA IMPRESIÓN / PDF -->
+  <div id="modalReporteImprimible" class="fixed inset-0 z-50 bg-slate-950 overflow-y-auto hidden">
+    <div class="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+      
+      <div class="no-print flex items-center justify-between border-b border-slate-800 pb-4">
+        <button onclick="closeModal('modalReporteImprimible')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-700">
+          &larr; Volver a la App
+        </button>
+        <button onclick="window.print()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          Imprimir / Guardar como PDF
+        </button>
+      </div>
+
+      <div id="printableArea" class="bg-white text-slate-900 p-8 rounded-2xl shadow-xl space-y-6">
+        
+        <div class="flex items-center justify-between border-b border-slate-300 pb-4">
+          <div>
+            <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">CONTROL LOGÍSTICO Y RONDA ELÉCTRICA DE PLANTA</h1>
+            <p class="text-xs text-slate-600 mt-0.5">Reporte Diario Consolidado de Parámetros y Alertas de Mantenimiento</p>
+          </div>
+          <div class="text-right text-xs text-slate-600">
+            <p><strong>Fecha:</strong> <span id="repFechaGen">--/--/----</span></p>
+            <p><strong>Turno:</strong> <span>OFICIAL PLANTA</span></p>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="font-bold text-xs text-slate-900 uppercase tracking-wide mb-2">1. Registro de Parámetros y Semáforo de Ronda</h2>
+          <table class="w-full text-xs text-left border-collapse border border-slate-300">
+            <thead class="bg-slate-100 text-slate-800 font-bold">
+              <tr>
+                <th class="border border-slate-300 px-2 py-1.5">Hora</th>
+                <th class="border border-slate-300 px-2 py-1.5">Línea / Área</th>
+                <th class="border border-slate-300 px-2 py-1.5">Equipo / Tag</th>
+                <th class="border border-slate-300 px-2 py-1.5 text-center">Amp. Nom / Med</th>
+                <th class="border border-slate-300 px-2 py-1.5 text-center">Temp (°C)</th>
+                <th class="border border-slate-300 px-2 py-1.5">Estado</th>
+                <th class="border border-slate-300 px-2 py-1.5">Observación</th>
+              </tr>
+            </thead>
+            <tbody id="repTablaRondaBody">
+              <!-- Filas dinámicas -->
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h2 class="font-bold text-xs text-slate-900 uppercase tracking-wide mb-2">2. Eventos de Alerta Atendidos en el Turno</h2>
+          <table class="w-full text-xs text-left border-collapse border border-slate-300">
+            <thead class="bg-slate-100 text-slate-800 font-bold">
+              <tr>
+                <th class="border border-slate-300 px-2 py-1.5">Equipo</th>
+                <th class="border border-slate-300 px-2 py-1.5">Síntoma / Motivo</th>
+                <th class="border border-slate-300 px-2 py-1.5">Técnico a Cargo</th>
+                <th class="border border-slate-300 px-2 py-1.5">Acción Realizada</th>
+                <th class="border border-slate-300 px-2 py-1.5">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="repTablaAlertasBody">
+              <!-- Filas dinámicas -->
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h2 class="font-bold text-xs text-slate-900 uppercase tracking-wide mb-2">3. Galería de Evidencias Fotográficas</h2>
+          <div id="repGaleriaFotos" class="grid grid-cols-3 gap-3">
+            <!-- Galería -->
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-8 pt-8 border-t border-slate-300 text-center text-xs">
+          <div>
+            <div class="border-b border-slate-400 w-48 mx-auto mb-1"></div>
+            <p class="font-bold text-slate-800">Firma Técnico Electricista</p>
+            <p class="text-slate-500">Mantenimiento de Planta</p>
+          </div>
+          <div>
+            <div class="border-b border-slate-400 w-48 mx-auto mb-1"></div>
+            <p class="font-bold text-slate-800">Firma Supervisor de Guardia</p>
+            <p class="text-slate-500">Jefatura de Mantenimiento</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APLICACIÓN -->
+  <script>
+    const STORAGE_KEY = "ELECTROMANT_DATA_PRO_V3";
+    let state = {
+      logs: [],
+      alerts: []
+    };
+
+    let audioMuted = false;
+    let audioCtx = null;
+    let alarmInterval = null;
+    let tempFotoBase64 = null;
+
+    window.addEventListener("DOMContentLoaded", () => {
+      cargarLocalStorage();
+      renderAll();
+      syncAlarmAudioLoop();
+    });
+
+    function cargarLocalStorage() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          state = JSON.parse(stored);
+          if (!Array.isArray(state.logs)) state.logs = [];
+          if (!Array.isArray(state.alerts)) state.alerts = [];
+        } catch(e) {
+          console.error("Error al cargar localStorage", e);
+        }
+      }
+    }
+
+    function guardarLocalStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      renderAll();
+      syncAlarmAudioLoop();
+    }
+
+    // --- SINTETIZADOR WEB AUDIO API ---
+    function initAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function sonarAlarmaTono() {
+      if (audioMuted) return;
+      try {
+        initAudioContext();
+        if (!audioCtx) return;
+
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = "sawtooth";
+        osc2.type = "square";
+
+        osc1.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc1.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.35);
+
+        osc2.frequency.setValueAtTime(987.77, audioCtx.currentTime);
+        osc2.frequency.exponentialRampToValueAtTime(523.25, audioCtx.currentTime + 0.35);
+
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.38);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start();
+        osc2.start();
+
+        osc1.stop(audioCtx.currentTime + 0.4);
+        osc2.stop(audioCtx.currentTime + 0.4);
+      } catch(err) {
+        console.warn("Audio Context suspendido", err);
+      }
+    }
+
+    function syncAlarmAudioLoop() {
+      const hayUnattended = state.alerts.some(a => a.status === "SIN ATENDER");
+      
+      const banner = document.getElementById("bannerCriticalAlert");
+      if (hayUnattended) {
+        banner.classList.remove("hidden");
+        const primera = state.alerts.find(a => a.status === "SIN ATENDER");
+        document.getElementById("bannerAlertText").textContent = `${primera.equipo}: ${primera.motivo}`;
+      } else {
+        banner.classList.add("hidden");
+      }
+
+      if (hayUnattended && !alarmInterval) {
+        sonarAlarmaTono();
+        alarmInterval = setInterval(() => {
+          sonarAlarmaTono();
+        }, 2800);
+      } else if (!hayUnattended && alarmInterval) {
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+      }
+    }
+
+    function toggleAudioMute() {
+      initAudioContext();
+      audioMuted = !audioMuted;
+      document.getElementById("audioIcon").textContent = audioMuted ? "🔇" : "🔊";
+      document.getElementById("audioText").textContent = audioMuted ? "Audio Mute" : "Audio Activo";
+      if (!audioMuted) sonarAlarmaTono();
+    }
+
+    function probarSonidoAlarma() {
+      initAudioContext();
+      sonarAlarmaTono();
+    }
+
+    // --- EVALUACIÓN DE SEMÁFORO ---
+    function evaluarSemafaro(ampNom, ampMed, temp, estadoVisual) {
+      const ratio = ampNom > 0 ? (ampMed / ampNom) : 0;
+      if (ratio >= 1.15 || temp >= 85) {
+        return { level: "CRITICO", badgeClass: "bg-red-950 text-red-300 border-red-700", text: "CRÍTICO" };
+      }
+      if (ratio >= 1.0 || temp >= 70 || estadoVisual === "ANOMALIA") {
+        return { level: "OBSERVADO", badgeClass: "bg-amber-950 text-amber-300 border-amber-700", text: "OBSERVADO" };
+      }
+      return { level: "NORMAL", badgeClass: "bg-emerald-950 text-emerald-300 border-emerald-700", text: "NORMAL" };
+    }
+
+    // --- COMPRESIÓN DE FOTO MEDIANTE CANVAS ---
+    function procesarFotoRonda(input) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement("canvas");
+            let width = img.width;
+            let height = img.height;
+            const maxDim = 800;
+
+            if (width > height) {
+              if (width > maxDim) { height *= maxDim / width; width = maxDim; }
+            } else {
+              if (height > maxDim) { width *= maxDim / height; height = maxDim; }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+
+            tempFotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
+            document.getElementById("imgPreviewRonda").src = tempFotoBase64;
+            document.getElementById("containerPreviewFoto").classList.remove("hidden");
+            document.getElementById("labelFotoRonda").textContent = "Foto Cargada ✓";
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function quitarFotoRonda() {
+      tempFotoBase64 = null;
+      document.getElementById("inpFotoRonda").value = "";
+      document.getElementById("containerPreviewFoto").classList.add("hidden");
+      document.getElementById("labelFotoRonda").textContent = "Tomar o Cargar Foto";
+    }
+
+    // --- GUARDAR RONDA ---
+    function guardarRonda(e) {
+      e.preventDefault();
+      initAudioContext();
+
+      const equipo = document.getElementById("inpEquipo").value.trim();
+      const area = document.getElementById("inpArea").value.trim();
+      const ampNom = parseFloat(document.getElementById("inpAmpNom").value);
+      const ampMed = parseFloat(document.getElementById("inpAmpMed").value);
+      const temp = parseFloat(document.getElementById("inpTemp").value);
+      const estadoVisual = document.getElementById("inpEstadoVisual").value;
+      const obs = document.getElementById("inpObs").value.trim();
+
+      const evalData = evaluarSemafaro(ampNom, ampMed, temp, estadoVisual);
+      const now = new Date();
+
+      const nuevoLog = {
+        id: "LOG-" + Date.now(),
+        fechaHora: now.toLocaleString(),
+        timestamp: now.getTime(),
+        equipo,
+        area,
+        ampNom,
+        ampMed,
+        temp,
+        estadoVisual,
+        obs,
+        nivel: evalData.level,
+        foto: tempFotoBase64
+      };
+
+      state.logs.unshift(nuevoLog);
+
+      if (evalData.level === "CRITICO") {
+        crearAlertaPersistente(
+          equipo,
+          area,
+          `Exceso Crítico: ${ampMed}A medido (Nom: ${ampNom}A), Temp: ${temp}°C. ${obs}`
+        );
+      }
+
+      document.getElementById("formRonda").reset();
+      quitarFotoRonda();
+      guardarLocalStorage();
+
+      switchTab('tabRonda');
+    }
+
+    // --- SISTEMA DE ALERTAS PERSISTENTES ---
+    function crearAlertaPersistente(equipo, area, motivo) {
+      const nuevaAlerta = {
+        id: "ALT-" + Date.now(),
+        equipo,
+        area,
+        motivo,
+        status: "SIN ATENDER",
+        horaDisparo: new Date().toLocaleTimeString(),
+        fechaDisparo: new Date().toLocaleDateString(),
+        tecnico: "",
+        horaAtencion: "",
+        solucion: "",
+        fotoCierre: null
+      };
+
+      state.alerts.unshift(nuevaAlerta);
+    }
+
+    function dispararAlertaManualSubmit(e) {
+      e.preventDefault();
+      initAudioContext();
+      const equipo = document.getElementById("inpAlertaEquipo").value.trim();
+      const area = document.getElementById("inpAlertaArea").value.trim();
+      const motivo = document.getElementById("inpAlertaMotivo").value.trim();
+
+      crearAlertaPersistente(equipo, area, motivo);
+      closeModal("modalAlertaManual");
+      document.getElementById("inpAlertaEquipo").value = "";
+      document.getElementById("inpAlertaArea").value = "";
+      document.getElementById("inpAlertaMotivo").value = "";
+
+      guardarLocalStorage();
+      switchTab('tabAlertas');
+    }
+
+    function abrirModalAtender(id) {
+      document.getElementById("inpAtenderAlertId").value = id;
+      openModal("modalAtenderAlerta");
+    }
+
+    function confirmarAtencionAlerta() {
+      const id = document.getElementById("inpAtenderAlertId").value;
+      const tec = document.getElementById("inpTecnicoNombre").value.trim();
+
+      if (!tec) return;
+
+      const alerta = state.alerts.find(a => a.id === id);
+      if (alerta) {
+        alerta.status = "EN REVISIÓN";
+        alerta.tecnico = tec;
+        alerta.horaAtencion = new Date().toLocaleTimeString();
+      }
+
+      closeModal("modalAtenderAlerta");
+      guardarLocalStorage();
+    }
+
+    function abrirModalResolver(id) {
+      document.getElementById("inpResolverAlertId").value = id;
+      openModal("modalResolverAlerta");
+    }
+
+    function confirmarResolverAlerta() {
+      const id = document.getElementById("inpResolverAlertId").value;
+      const solucion = document.getElementById("inpSolucionTexto").value.trim();
+      const fileInput = document.getElementById("inpFotoCierre");
+
+      if (!solucion) return;
+
+      const alerta = state.alerts.find(a => a.id === id);
+      if (!alerta) return;
+
+      const finalizarCierre = (fotoBase64) => {
+        alerta.status = "RESUELTA";
+        alerta.solucion = solucion;
+        alerta.fotoCierre = fotoBase64;
+        alerta.horaCierre = new Date().toLocaleTimeString();
+
+        closeModal("modalResolverAlerta");
+        document.getElementById("inpSolucionTexto").value = "";
+        document.getElementById("inpFotoCierre").value = "";
+        guardarLocalStorage();
+      };
+
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          finalizarCierre(e.target.result);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        finalizarCierre(null);
+      }
+    }
+
+    // --- CORRECCIÓN & ELIMINACIÓN DE REGISTROS ---
+    function eliminarLog(id) {
+      if (confirm("¿Deseas eliminar esta lectura de la bitácora?")) {
+        state.logs = state.logs.filter(l => l.id !== id);
+        guardarLocalStorage();
+      }
+    }
+
+    function abrirModalEditarLog(id) {
+      const log = state.logs.find(l => l.id === id);
+      if (!log) return;
+      document.getElementById("editLogId").value = log.id;
+      document.getElementById("editInpEquipo").value = log.equipo;
+      document.getElementById("editInpArea").value = log.area;
+      document.getElementById("editInpAmpNom").value = log.ampNom;
+      document.getElementById("editInpAmpMed").value = log.ampMed;
+      document.getElementById("editInpTemp").value = log.temp;
+      document.getElementById("editInpEstadoVisual").value = log.estadoVisual || "OK";
+      document.getElementById("editInpObs").value = log.obs || "";
+      openModal("modalEditarLectura");
+    }
+
+    function confirmarEdicionLog(e) {
+      e.preventDefault();
+      const id = document.getElementById("editLogId").value;
+      const log = state.logs.find(l => l.id === id);
+      if (!log) return;
+
+      log.equipo = document.getElementById("editInpEquipo").value.trim();
+      log.area = document.getElementById("editInpArea").value.trim();
+      log.ampNom = parseFloat(document.getElementById("editInpAmpNom").value);
+      log.ampMed = parseFloat(document.getElementById("editInpAmpMed").value);
+      log.temp = parseFloat(document.getElementById("editInpTemp").value);
+      log.estadoVisual = document.getElementById("editInpEstadoVisual").value;
+      log.obs = document.getElementById("editInpObs").value.trim();
+
+      const evalData = evaluarSemafaro(log.ampNom, log.ampMed, log.temp, log.estadoVisual);
+      log.nivel = evalData.level;
+
+      closeModal("modalEditarLectura");
+      guardarLocalStorage();
+    }
+
+    function eliminarAlerta(id) {
+      if (confirm("¿Deseas eliminar este registro de alerta del historial?")) {
+        state.alerts = state.alerts.filter(a => a.id !== id);
+        guardarLocalStorage();
+      }
+    }
+
+    function limpiarTodoHistorial() {
+      if (confirm("⚠️ ¿Estás seguro de que deseas borrar TODA la bitácora y alertas del turno?")) {
+        if (confirm("🚨 Confirmación final: Se eliminarán todas las lecturas y alertas registradas.")) {
+          state.logs = [];
+          state.alerts = [];
+          guardarLocalStorage();
+        }
+      }
+    }
+
+    // --- RENDERIZADO GENERAL ---
+    function renderAll() {
+      renderStats();
+      renderBitacora();
+      renderAlertas();
+      renderBadgeNav();
+    }
+
+    function renderStats() {
+      document.getElementById("statLecturas").textContent = state.logs.length;
+      document.getElementById("statAlertasActivas").textContent = state.alerts.filter(a => a.status === "SIN ATENDER").length;
+      document.getElementById("statEnRevision").textContent = state.alerts.filter(a => a.status === "EN REVISIÓN").length;
+      document.getElementById("statResueltas").textContent = state.alerts.filter(a => a.status === "RESUELTA").length;
+    }
+
+    function renderBadgeNav() {
+      const sinAtenderCount = state.alerts.filter(a => a.status === "SIN ATENDER").length;
+      const badge = document.getElementById("badgeAlertasNav");
+      if (sinAtenderCount > 0) {
+        badge.textContent = sinAtenderCount;
+        badge.classList.remove("hidden");
+      } else {
+        badge.classList.add("hidden");
+      }
+    }
+
+    function renderBitacora() {
+      const container = document.getElementById("listaBitacora");
+      if (state.logs.length === 0) {
+        container.innerHTML = `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center text-slate-500 text-xs">
+            No hay lecturas de ronda registradas. Usa el formulario superior.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.logs.map(log => {
+        const sem = evaluarSemafaro(log.ampNom, log.ampMed, log.temp, log.estadoVisual);
+        return `
+          <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 space-y-3 transition">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h4 class="font-bold text-white text-sm">${log.equipo}</h4>
+                <p class="text-xs text-slate-400">${log.area} · <span class="text-slate-500">${log.fechaHora}</span></p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold tracking-wide ${sem.badgeClass}">
+                  ${sem.text}
+                </span>
+                <button onclick="abrirModalEditarLog('${log.id}')" title="Editar lectura" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg text-xs font-semibold border border-slate-700 transition">
+                  ✏️
+                </button>
+                <button onclick="eliminarLog('${log.id}')" title="Eliminar lectura" class="px-2 py-0.5 bg-slate-800 hover:bg-red-950 text-red-400 rounded-lg text-xs font-semibold border border-slate-700 hover:border-red-800 transition">
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-center font-mono text-xs">
+              <div>
+                <span class="block text-[10px] text-slate-500 uppercase font-sans">Amp. Nom</span>
+                <span class="text-slate-300">${log.ampNom} A</span>
+              </div>
+              <div>
+                <span class="block text-[10px] text-slate-500 uppercase font-sans">Amp. Medido</span>
+                <span class="font-bold ${log.ampMed >= log.ampNom ? 'text-amber-400' : 'text-slate-200'}">${log.ampMed} A</span>
+              </div>
+              <div>
+                <span class="block text-[10px] text-slate-500 uppercase font-sans">Temp. °C</span>
+                <span class="font-bold ${log.temp >= 70 ? 'text-red-400' : 'text-slate-200'}">${log.temp} °C</span>
+              </div>
+            </div>
+
+            ${log.obs ? `<p class="text-xs text-slate-300 bg-slate-950/40 p-2 rounded-lg border border-slate-800/60">💬 ${log.obs}</p>` : ''}
+
+            ${log.foto ? `
+              <div class="pt-1">
+                <button onclick="verFotoFull('${log.foto}')" class="flex items-center gap-2 text-xs text-sky-400 hover:text-sky-300 font-medium">
+                  <img src="${log.foto}" class="w-10 h-10 object-cover rounded-lg border border-slate-700">
+                  <span>Ver Evidencia Fotográfica</span>
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderAlertas() {
+      const containerActivas = document.getElementById("containerAlertasActivas");
+      const containerResueltas = document.getElementById("containerAlertasResueltas");
+
+      const activas = state.alerts.filter(a => a.status !== "RESUELTA");
+      const resueltas = state.alerts.filter(a => a.status === "RESUELTA");
+
+      document.getElementById("countAlertasActivas").textContent = activas.length;
+
+      if (activas.length === 0) {
+        containerActivas.innerHTML = `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center text-slate-400 text-xs">
+            ✅ Sin alertas activas pendientes en este momento.
+          </div>
+        `;
+      } else {
+        containerActivas.innerHTML = activas.map(a => {
+          const isUnattended = a.status === "SIN ATENDER";
+          return `
+            <div class="bg-slate-900 border ${isUnattended ? 'pulse-alarm bg-red-950/20' : 'border-amber-500/50 bg-amber-950/10'} rounded-2xl p-4 space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h4 class="font-bold text-white text-base flex items-center gap-2">
+                    <span>${isUnattended ? '🚨' : '🛠️'}</span> ${a.equipo}
+                  </h4>
+                  <p class="text-xs text-slate-400">${a.area} · <span class="text-slate-500">Reportada: ${a.horaDisparo}</span></p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-bold ${isUnattended ? 'bg-red-600 text-white' : 'bg-amber-600 text-slate-950'}">
+                    ${a.status}
+                  </span>
+                  <button onclick="eliminarAlerta('${a.id}')" title="Eliminar alerta" class="px-2 py-1 bg-slate-800 hover:bg-red-950 text-red-400 rounded-lg text-xs font-semibold border border-slate-700 hover:border-red-800 transition">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 text-xs text-slate-200">
+                <strong>Síntoma / Motivo:</strong> ${a.motivo}
+              </div>
+
+              ${a.tecnico ? `
+                <div class="text-xs text-amber-300 font-medium bg-amber-950/40 p-2 rounded-lg border border-amber-900/50 flex items-center justify-between">
+                  <span>En atención por: <strong>${a.tecnico}</strong></span>
+                  <span class="text-slate-400 text-[11px]">Inicio: ${a.horaAtencion}</span>
+                </div>
+              ` : ''}
+
+              <div class="flex gap-2 pt-1">
+                ${isUnattended ? `
+                  <button onclick="abrirModalAtender('${a.id}')" class="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow">
+                    Tomar Atención Ahora
+                  </button>
+                ` : `
+                  <button onclick="abrirModalResolver('${a.id}')" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow">
+                    Resolver & Cerrar Alerta
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      if (resueltas.length === 0) {
+        containerResueltas.innerHTML = `
+          <div class="text-xs text-slate-500 text-center py-3">No hay alertas resueltas en el turno.</div>
+        `;
+      } else {
+        containerResueltas.innerHTML = resueltas.map(a => `
+          <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-xs space-y-1.5">
+            <div class="flex justify-between items-center">
+              <strong class="text-slate-200">${a.equipo}</strong>
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-400 font-bold text-[11px]">✓ RESUELTA (${a.horaCierre || ''})</span>
+                <button onclick="eliminarAlerta('${a.id}')" title="Eliminar alerta resuelta" class="text-red-400 hover:text-red-300 font-bold text-xs px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">
+                  🗑️
+                </button>
+              </div>
+            </div>
+            <p class="text-slate-400">Atendido por: <span class="text-slate-300">${a.tecnico}</span></p>
+            <p class="text-slate-300 bg-slate-950/50 p-2 rounded border border-slate-800/80">Acción: ${a.solucion}</p>
+          </div>
+        `).join("");
+      }
+    }
+
+    // --- EXPORTACIÓN E IMPORTACIÓN ---
+    function exportarCSV() {
+      if (state.logs.length === 0) return;
+
+      const headers = ["Fecha_Hora", "Linea_Area", "Equipo", "Amp_Nominal_A", "Amp_Medido_A", "Temp_C", "Estado", "Observacion", "Tiene_Foto"];
+      const rows = state.logs.map(l => [
+        `"${l.fechaHora}"`,
+        `"${l.area.replace(/"/g, '""')}"`,
+        `"${l.equipo.replace(/"/g, '""')}"`,
+        l.ampNom,
+        l.ampMed,
+        l.temp,
+        `"${l.nivel}"`,
+        `"${(l.obs || '').replace(/"/g, '""')}"`,
+        l.foto ? "SI" : "NO"
+      ]);
+
+      const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Ronda_Electrica_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportarJSON() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Respaldo_ElectroMant_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function importarArchivo(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        try {
+          if (file.name.endsWith(".json")) {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed.logs)) {
+              state = parsed;
+              guardarLocalStorage();
+            }
+          } else if (file.name.endsWith(".csv")) {
+            const lines = text.split(/\r?\n/).filter(Boolean).slice(1);
+            const importedLogs = lines.map((line, idx) => {
+              const cols = line.split(",").map(c => c.replace(/^"|"$/g, '').replace(/""/g, '"'));
+              return {
+                id: "LOG-IMP-" + idx,
+                fechaHora: cols[0] || new Date().toLocaleString(),
+                area: cols[1] || "Planta General",
+                equipo: cols[2] || "Equipo Importado",
+                ampNom: parseFloat(cols[3]) || 0,
+                ampMed: parseFloat(cols[4]) || 0,
+                temp: parseFloat(cols[5]) || 0,
+                nivel: cols[6] || "NORMAL",
+                obs: cols[7] || "",
+                foto: null
+              };
+            });
+            state.logs = [...importedLogs, ...state.logs];
+            guardarLocalStorage();
+          }
+        } catch(err) {
+          console.error(err);
+        }
+        input.value = "";
+      };
+      reader.readAsText(file);
+    }
+
+    // --- REPORTE IMPRIMIBLE ---
+    function generarReporteImprimible() {
+      document.getElementById("repFechaGen").textContent = new Date().toLocaleString();
+      
+      const tbodyRonda = document.getElementById("repTablaRondaBody");
+      if (state.logs.length === 0) {
+        tbodyRonda.innerHTML = `<tr><td colspan="7" class="text-center py-2 text-slate-500">Sin lecturas registradas</td></tr>`;
+      } else {
+        tbodyRonda.innerHTML = state.logs.map(l => `
+          <tr>
+            <td class="border border-slate-300 px-2 py-1">${l.fechaHora.split(' ')[1] || l.fechaHora}</td>
+            <td class="border border-slate-300 px-2 py-1">${l.area}</td>
+            <td class="border border-slate-300 px-2 py-1 font-bold">${l.equipo}</td>
+            <td class="border border-slate-300 px-2 py-1 text-center font-mono">${l.ampNom}A / ${l.ampMed}A</td>
+            <td class="border border-slate-300 px-2 py-1 text-center font-mono">${l.temp}°C</td>
+            <td class="border border-slate-300 px-2 py-1 font-bold ${l.nivel === 'CRITICO' ? 'text-red-600' : l.nivel === 'OBSERVADO' ? 'text-amber-600' : 'text-emerald-600'}">${l.nivel}</td>
+            <td class="border border-slate-300 px-2 py-1">${l.obs || '-'}</td>
+          </tr>
+        `).join("");
+      }
+
+      const tbodyAlertas = document.getElementById("repTablaAlertasBody");
+      if (state.alerts.length === 0) {
+        tbodyAlertas.innerHTML = `<tr><td colspan="5" class="text-center py-2 text-slate-500">Sin eventos de alerta reportados</td></tr>`;
+      } else {
+        tbodyAlertas.innerHTML = state.alerts.map(a => `
+          <tr>
+            <td class="border border-slate-300 px-2 py-1 font-bold">${a.equipo}</td>
+            <td class="border border-slate-300 px-2 py-1">${a.motivo}</td>
+            <td class="border border-slate-300 px-2 py-1">${a.tecnico || 'Pendiente'}</td>
+            <td class="border border-slate-300 px-2 py-1">${a.solucion || 'En proceso'}</td>
+            <td class="border border-slate-300 px-2 py-1 font-bold">${a.status}</td>
+          </tr>
+        `).join("");
+      }
+
+      const galeria = document.getElementById("repGaleriaFotos");
+      const fotosLogs = state.logs.filter(l => l.foto).map(l => ({ titulo: l.equipo, foto: l.foto }));
+      const fotosCierre = state.alerts.filter(a => a.fotoCierre).map(a => ({ titulo: `Cierre: ${a.equipo}`, foto: a.fotoCierre }));
+      const todasFotos = [...fotosLogs, ...fotosCierre];
+
+      if (todasFotos.length === 0) {
+        galeria.innerHTML = `<p class="text-xs text-slate-500 col-span-3">No hay evidencias fotográficas registradas.</p>`;
+      } else {
+        galeria.innerHTML = todasFotos.map(f => `
+          <div class="border border-slate-300 p-1 rounded text-center">
+            <img src="${f.foto}" class="w-full h-24 object-cover rounded mb-1">
+            <span class="text-[10px] font-semibold text-slate-700 block truncate">${f.titulo}</span>
+          </div>
+        `).join("");
+      }
+
+      openModal("modalReporteImprimible");
+    }
+
+    // --- CARGAR DATOS DEMO REALISTAS ---
+    function cargarDatosDemo() {
+      const now = new Date();
+      state = {
+        logs: [
+          {
+            id: "LOG-101",
+            fechaHora: new Date(now - 1000*60*30).toLocaleString(),
+            equipo: "Motor Faja Transportadora L-01",
+            area: "Subestación 01 - Chancado",
+            ampNom: 50.0,
+            ampMed: 62.0,
+            temp: 88.0,
+            estadoVisual: "ANOMALIA",
+            obs: "Sobretemperatura severa y sobrecorriente por trancamientio parcial",
+            nivel: "CRITICO",
+            foto: crearSVGTestImage("Faja L-01 Crítica", "#7f1d1d")
+          },
+          {
+            id: "LOG-102",
+            fechaHora: new Date(now - 1000*60*75).toLocaleString(),
+            equipo: "Variador VFD Molino Principal",
+            area: "Subestación 02",
+            ampNom: 120.0,
+            ampMed: 123.5,
+            temp: 74.0,
+            estadoVisual: "OK",
+            obs: "Filtros de ventilación con acumulación ligera de polvo",
+            nivel: "OBSERVADO",
+            foto: null
+          },
+          {
+            id: "LOG-103",
+            fechaHora: new Date(now - 1000*60*150).toLocaleString(),
+            equipo: "Tablero Control Bombas Potable",
+            area: "Cuarto de Agua",
+            ampNom: 25.0,
+            ampMed: 21.0,
+            temp: 37.5,
+            estadoVisual: "OK",
+            obs: "Parámetros normales en bornes de potencia",
+            nivel: "NORMAL",
+            foto: null
+          }
+        ],
+        alerts: [
+          {
+            id: "ALT-201",
+            equipo: "Motor Faja Transportadora L-01",
+            area: "Subestación 01 - Chancado",
+            motivo: "Exceso Crítico: 62A medido (Nom: 50A), Temp: 88°C. Sobretemperatura severa.",
+            status: "SIN ATENDER",
+            horaDisparo: new Date(now - 1000*60*30).toLocaleTimeString(),
+            fechaDisparo: new Date().toLocaleDateString(),
+            tecnico: "",
+            horaAtencion: "",
+            solucion: "",
+            fotoCierre: null
+          },
+          {
+            id: "ALT-202",
+            equipo: "Alimentador General Tablero TG-02",
+            area: "Nave de Procesos",
+            motivo: "Falla de fase L3 detectada por analizador de red.",
+            status: "EN REVISIÓN",
+            horaDisparo: new Date(now - 1000*60*90).toLocaleTimeString(),
+            fechaDisparo: new Date().toLocaleDateString(),
+            tecnico: "Ing. Carlos Mendoza",
+            horaAtencion: new Date(now - 1000*60*70).toLocaleTimeString(),
+            solucion: "",
+            fotoCierre: null
+          }
+        ]
+      };
+
+      guardarLocalStorage();
+      switchTab('tabAlertas');
+    }
+
+    function crearSVGTestImage(texto, color) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="${color}"/><text x="50%" y="50%" fill="#fff" font-size="16" font-family="sans-serif" text-anchor="middle" dominant-baseline="middle">${texto}</text></svg>`;
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+
+    // --- NAVEGACIÓN Y MODALES ---
+    function switchTab(tabId) {
+      document.getElementById("tabRonda").classList.add("hidden");
+      document.getElementById("tabAlertas").classList.add("hidden");
+      document.getElementById("tabReportes").classList.add("hidden");
+
+      document.getElementById("navTabRonda").className = "flex-1 py-3 px-2 text-center font-bold text-xs sm:text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5";
+      document.getElementById("navTabAlertas").className = "flex-1 py-3 px-2 text-center font-bold text-xs sm:text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5 relative";
+      document.getElementById("navTabReportes").className = "flex-1 py-3 px-2 text-center font-bold text-xs sm:text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5";
+
+      document.getElementById(tabId).classList.remove("hidden");
+
+      if (tabId === 'tabRonda') {
+        document.getElementById("navTabRonda").className = "flex-1 py-3 px-2 text-center font-bold text-xs sm:text-sm border-b-2 border-sky-500 text-sky-400 transition flex items-center justify-center gap-1.5";
+      } else if (tabId === 'tabAlertas') {
+        document.getElementById("navTabAlertas").className = "flex-1 py-3 px-2 text-center font-bold text-xs sm:text-sm border-b-2 border-red-500 text-red-400 transition flex items-center justify-center gap-1.5 relative";
+      } else if (tabId === 'tabReportes') {
+        document.getElementById("navTabReportes").className = "flex-1 py-3 px-2 text-center font-bold text-xs sm:text-sm border-b-2 border-sky-500 text-sky-400 transition flex items-center justify-center gap-1.5";
+      }
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove("hidden");
+      document.getElementById(id).classList.add("flex");
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add("hidden");
+      document.getElementById(id).classList.remove("flex");
+    }
+
+    function verFotoFull(src) {
+      document.getElementById("imgVisorFull").src = src;
+      openModal("modalVisorFoto");
+    }
+  </script>
+</body>
+</html>
